@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>BrickBreaker</title>
+    <script src="./js/pixi-4.8.2.js"></script>
+    <script src="./js/pixi-filters-v2.7.1.js"></script>
+    <script src="./js/sound.js"></script>
+    <script src="./js/bump.js"></script>
+    <script src="./js/keyboard.js"></script>
+    <style>
+    </style>
+</head>
+<body>
+    <div id="boxMain"></div>
+</body>
+</html>
+<script>
+    
+    let app, 
+        ball, 
+        slider,
+        blocks = [],
+        walls = [],
+        linebox,
+        stageW = 800,
+        stageH = 860;
+
+    let angleLine;
+    let angle = 360;
+
+    let b = new Bump(PIXI);
+    
+    document.body.onload = function(){
+
+        PIXI.utils.sayHello('Canvas');
+        app = new PIXI.Application({width:stageW, height:stageH});
+        document.getElementById('boxMain').appendChild(app.view);
+
+        // slider
+        let sliderW = 120, sliderH = 20;
+        slider = new PIXI.Graphics();
+        slider.beginFill(0x999999);
+        slider.drawRoundedRect(0, 0, sliderW, sliderH, 12)
+        slider.endFill()
+        slider.x = stageW/2 - sliderW/2
+        slider.y = stageH-100
+        app.stage.addChild(slider)
+
+        // ball
+        let ballRadius = 10;
+        ball = new PIXI.Graphics()
+        ball.beginFill(0xffffff)
+        ball.drawCircle( 0,  0, ballRadius)
+        ball.endFill()
+        ball.x = stageW/2
+        ball.y = slider.y - ballRadius
+        app.stage.addChild(ball)
+
+        // wall
+        let wall1 = new PIXI.Graphics();
+        wall1.beginFill(0x0000cc);
+        wall1.drawRect(0, 0, 10, 860)
+        app.stage.addChild(wall1)
+
+        let wall2 = new PIXI.Graphics();
+        wall2.beginFill(0x0000cc);
+        wall2.drawRect(10, 0, 780, 10)
+        app.stage.addChild(wall2)
+
+        let wall3 = new PIXI.Graphics();
+        wall3.beginFill(0x0000cc);
+        wall3.drawRect(790, 0, 10, 860)
+        app.stage.addChild(wall3)
+        
+
+        // init blocks
+        for(var i=0; i<10; i++){
+            for(var t=0; t<10; t++){
+                let block = new PIXI.Graphics()
+                block.lineStyle(1, 0x99CCFF, 1)
+                block.beginFill(0xFF9933)
+                block.drawRoundedRect( 0, 0, 70, 20, 6);
+                block.x = 70*t + 50
+                block.y = 20*i + 50
+                block.endFill()
+                app.stage.addChild(block)
+                blocks.push(block)
+            }
+        }
+
+        // line
+        angleLine = DrawRay(app.stage, 400, 750, angle, 1000, lineStyle)
+
+        WaitGame();
+
+    }
+
+    let lineStyle = {
+        lineWidth:1,
+        color:0x00ff00,
+        alphe:1,
+        alignment:0.5
+    };
+
+    function DrawRay(state, x, y, angle, radius, style){
+        let line = new PIXI.Graphics();
+        line.lineStyle(
+            style.lineWidth,
+            style.color,
+            style.alpha,
+            style.alignment
+        );
+
+        let endX, endY;
+        let a = (angle % 360) % 90;
+        let n = Math.floor((angle%360) / 90)
+        let ar = a * (Math.PI / 180)
+        switch(n){
+            case 0:
+                endX = - radius * Math.sin(ar)
+                endY = radius * Math.cos(ar)
+                break;
+            case 1:
+                endX = - radius * Math.cos(ar)
+                endY = - radius * Math.sin(ar)
+                break;
+            case 2:
+                endX = radius * Math.sin(ar)
+                endY = - radius * Math.cos(ar)
+                break;
+            case 3:
+                endX = radius * Math.cos(ar)
+                endY = radius * Math.sin(ar)
+                break;
+        }
+
+        let eX = Math.floor(x - endX)
+        let eY = Math.floor(x - endY)
+        line.moveTo(x, y)
+        line.lineTo(eX, eY)
+        state.addChild(line)
+        return line
+    }
+
+    function AngleLeft(){
+        let a = angle + 5;
+        if( a > 445 ){
+            return
+        }
+
+        angle = a
+
+        if(angleLine){
+            app.stage.removeChild(angleLine)
+        }
+
+        angleLine = DrawRay(app.stage, 400, 750, a, 1000, lineStyle)
+
+    }
+
+    function AngleRight(){
+        let a = angle - 5;
+        if( a < 285 ){
+            return
+        }
+
+        angle = a
+
+        if(angleLine){
+            app.stage.removeChild(angleLine)
+        }
+
+        angleLine = DrawRay(app.stage, 400, 750, a, 1000, lineStyle)
+    }
+
+    function WaitGame(){
+        let left = keyboard('ArrowLeft', true);
+        let right = keyboard("ArrowRight", true);
+        let space = keyboard(' ');
+        left.isUp = true;
+        right.isUp = true;
+        left.press = AngleLeft
+        right.press = AngleRight
+        space.press = () => {
+            left.unsubscribe()
+            right.unsubscribe()
+            space.unsubscribe()
+            app.stage.removeChild(angleLine)
+            StartGame()
+        }
+    }
+
+    function StartGame(){
+        let left = keyboard('ArrowLeft', true);
+        let right = keyboard("ArrowRight", true);
+        left.isUp = true;
+        right.isUp = true;
+        left.press = () => {
+            if(slider.x <= 10){
+                return
+            }
+            slider.x = slider.x - 10;
+        }
+        right.press = () => {
+            if(slider.x >= 670){
+                return
+            }
+            slider.x = slider.x + 10;
+        }
+        
+        ball.vx = 2;
+        ball.vy = 2;
+        ball.circular = true;
+
+        gameLoop();
+    }
+
+    let state = play;
+    let aniHandler;
+
+    function gameLoop(){
+        aniHandler = requestAnimationFrame(gameLoop)
+        state()
+        //c.update()
+        app.renderer.render(app.stage)
+    }
+
+    function play(){
+        ball.x -= ball.vx;
+        ball.y -= ball.vy;
+
+        //slider
+        b.circleRectangleCollision(ball, slider, true);
+        
+        //blocks
+        let indexs = [];
+        for(var i=blocks.length-1; i>0; i--){
+            let co = b.hitTestCircleRectangle(ball, blocks[i]);
+            if(co){
+                indexs.push(i)
+            }
+        }
+        for(var i=blocks.length-1; i>=0; i--){
+            b.circleRectangleCollision(ball, blocks[i], true);
+        }
+        for(var i=indexs.length-1; i>=0; i--){
+            SoundJump()
+            app.stage.removeChild( blocks[ indexs[i] ] );
+            blocks.splice(indexs[i], 1)
+        }
+        
+        //box
+        let collision = b.contain(ball, 
+            { x: 20, y: 20, width: 800, height: 771 }, 
+            true, 
+            callbackFunction
+        );
+        function callbackFunction(collision){
+            //console.log("conllsion", collision)
+        }
+        if(collision){
+            if (collision.has("left")) {
+                // console.log("left");
+            };
+            if (collision.has("right")) {
+                // console.log("right");
+            };
+            if (collision.has("top")) {
+                // console.log("top");
+            };
+            if (collision.has("bottom")) {
+                // console.log("bottom");
+                SoundExplosion()
+                cancelAnimationFrame(aniHandler)
+            };
+        }
+    }
+
+    function SoundJump(){
+        soundEffect(
+            523.25,       //frequency
+            0.05,         //attack
+            0.2,          //decay
+            "sine",       //waveform
+            3,            //volume
+            0.8,          //pan
+            0,            //wait before playing
+            600,          //pitch bend amount
+            true,         //reverse
+            100,          //random pitch range
+            0,            //dissonance
+            undefined,    //echo array: [delay, feedback, filter]
+            undefined     //reverb array: [duration, decay, reverse?]
+        );
+    }
+
+    function SoundExplosion(){
+        soundEffect(
+            16,          //frequency
+            0,           //attack
+            1,           //decay
+            "sawtooth",  //waveform
+            1,           //volume
+            0,           //pan
+            0,           //wait before playing
+            0,           //pitch bend amount
+            false,       //reverse
+            0,           //random pitch range
+            50,          //dissonance
+            undefined,   //echo array: [delay, feedback, filter]
+            undefined    //reverb array: [duration, decay, reverse?]
+        );
+    }
+
+</script>
