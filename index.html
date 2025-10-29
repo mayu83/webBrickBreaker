@@ -92,6 +92,10 @@
         // line
         angleLine = DrawRay(app.stage, 400, 750, angle, 1000, lineStyle)
 
+        // ball vx vy
+        ball.vx = 0
+        ball.vy = 3
+
         WaitGame();
 
     }
@@ -143,13 +147,15 @@
         return line
     }
 
-    function AngleLeft(){
+    function AngleRight(){
         let a = angle + 5;
         if( a > 445 ){
             return
         }
 
         angle = a
+
+        SetBallV()
 
         if(angleLine){
             app.stage.removeChild(angleLine)
@@ -159,7 +165,7 @@
 
     }
 
-    function AngleRight(){
+    function AngleLeft(){
         let a = angle - 5;
         if( a < 285 ){
             return
@@ -167,11 +173,29 @@
 
         angle = a
 
+        SetBallV()
+
         if(angleLine){
             app.stage.removeChild(angleLine)
         }
 
         angleLine = DrawRay(app.stage, 400, 750, a, 1000, lineStyle)
+    }
+
+    function SetBallV(){
+
+        let a = (angle % 90 ) * (Math.PI / 180)
+        if(angle<360){
+            ball.vx = 3 * Math.cos(a)
+            ball.vy = 3 * Math.sin(a)
+        }else if(angle>360){
+            ball.vx = - 3 * Math.sin(a)
+            ball.vy = 3 * Math.cos(a)
+        }else{
+            ball.vx = 0
+            ball.vy = 3
+        }
+
     }
 
     function WaitGame(){
@@ -209,8 +233,6 @@
             slider.x = slider.x + 10;
         }
         
-        ball.vx = 2;
-        ball.vy = 2;
         ball.circular = true;
 
         gameLoop();
